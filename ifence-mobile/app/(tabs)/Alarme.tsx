@@ -6,13 +6,12 @@ import {
   Button,
   ActivityIndicator,
 } from "react-native";
-import { daltonicColors, defaultColors } from "../constants/DaltonicColors";
-import { useRouter} from "expo-router";
 import MapView, { Marker, Circle } from "react-native-maps";
 import { obterCercas } from "../../storage/cercaStorage";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useDaltonicColors } from "../hooks/useDaltonicColors";
 
 interface Cerca {
   id: string | number;
@@ -25,20 +24,15 @@ interface Cerca {
 }
 
 const Alarme = () => {
-  const [daltonicMode, setDaltonicMode] = useState(false);
-  const colors = daltonicMode ? daltonicColors : defaultColors;
+  const colors = useDaltonicColors();
 
-  useEffect(() => {
-    (async () => {
-      const value = await AsyncStorage.getItem('daltonicMode');
-      if (value === 'true') setDaltonicMode(true);
-    })();
-  }, []);
   const [cercas, setCercas] = useState<Cerca[]>([]);
   const [cercaSelecionada, setCercaSelecionada] = useState<Cerca | null>(null);
-  const [point2, setPoint2] = useState<{ latitude: number; longitude: number }>({ latitude: 0, longitude: 0 });
+  const [point2, setPoint2] = useState<{ latitude: number; longitude: number }>({
+    latitude: 0,
+    longitude: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   const fetchCercas = async () => {
     try {
@@ -52,9 +46,9 @@ const Alarme = () => {
           raio: parseFloat(cerca.raio),
         }))
       );
-      setLoading(false);
     } catch (error) {
       console.error("Erro ao obter cercas:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -65,14 +59,17 @@ const Alarme = () => {
     }, [])
   );
 
-  // Expo Router não tem 'query', então removendo esse uso
-  // Se precisar selecionar uma cerca por id, use outro método
-
-  const salvarLocalizacao = async (novaLocalizacao: { latitude: number; longitude: number; timestamp: string }) => {
+  const salvarLocalizacao = async (novaLocalizacao: {
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  }) => {
     if (!cercaSelecionada) return;
     const chave = `localizacoes_${cercaSelecionada.id}`;
     const localizacoesSalvas = await AsyncStorage.getItem(chave);
-    const localizacoesArray = localizacoesSalvas ? JSON.parse(localizacoesSalvas) : [];
+    const localizacoesArray = localizacoesSalvas
+      ? JSON.parse(localizacoesSalvas)
+      : [];
     const novasLocalizacoes = [...localizacoesArray, novaLocalizacao];
     await AsyncStorage.setItem(chave, JSON.stringify(novasLocalizacoes));
   };
@@ -81,8 +78,10 @@ const Alarme = () => {
     if (!cercaSelecionada) return;
     const interval = setInterval(() => {
       const maxDistance = 0.005;
-      const newLat = cercaSelecionada.latitude + (Math.random() - 0.5) * maxDistance;
-      const newLon = cercaSelecionada.longitude + (Math.random() - 0.5) * maxDistance;
+      const newLat =
+        cercaSelecionada.latitude + (Math.random() - 0.5) * maxDistance;
+      const newLon =
+        cercaSelecionada.longitude + (Math.random() - 0.5) * maxDistance;
       const novaLocalizacao = {
         latitude: newLat,
         longitude: newLon,
@@ -90,6 +89,7 @@ const Alarme = () => {
       };
       setPoint2(novaLocalizacao);
       salvarLocalizacao(novaLocalizacao);
+
       const distance = getDistance(
         cercaSelecionada.latitude,
         cercaSelecionada.longitude,
@@ -103,9 +103,14 @@ const Alarme = () => {
     return () => clearInterval(interval);
   }, [cercaSelecionada]);
 
-  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const getDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
     const toRad = (value: number) => (value * Math.PI) / 180;
-    const R = 6371;
+    const R = 6371; // km
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a =
@@ -115,7 +120,7 @@ const Alarme = () => {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c * 1000;
+    return R * c * 1000; // metros
   };
 
   const exibirToast = (cerca: Cerca, ativa: boolean) => {
@@ -132,7 +137,7 @@ const Alarme = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }] }>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.button} />
       </View>
     );
@@ -140,11 +145,13 @@ const Alarme = () => {
 
   if (!cercaSelecionada) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }] }>
-        <View style={[styles.header, { backgroundColor: colors.header }] }>
-          <Text style={[styles.textHeader, { color: colors.title }]}>Tela de Alarme</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.header }]}>
+          <Text style={[styles.textHeader, { color: colors.title }]}>
+            Tela de Alarme
+          </Text>
         </View>
-        <Text style={[styles.textSelecionar, { color: colors.subtitle }] }>
+        <Text style={[styles.textSelecionar, { color: colors.subtitle }]}>
           Selecione uma cerca para visualizar.
         </Text>
         <View style={styles.cercasList}>
@@ -163,9 +170,11 @@ const Alarme = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
-      <View style={[styles.header, { backgroundColor: colors.header }] }>
-        <Text style={[styles.textHeader, { color: colors.title }]}>Tela de Alarme</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.header }]}>
+        <Text style={[styles.textHeader, { color: colors.title }]}>
+          Tela de Alarme
+        </Text>
       </View>
       <MapView
         style={StyleSheet.absoluteFillObject}
@@ -207,10 +216,27 @@ const Alarme = () => {
           pinColor={colors.button}
         />
       </MapView>
-      <View style={[styles.info, { backgroundColor: colors.infoBox, borderColor: colors.border, borderWidth: 2 }] }>
-        <Text style={[styles.text, { color: colors.infoText }]}>Latitude: {point2.latitude.toFixed(5)}</Text>
-        <Text style={[styles.text, { color: colors.infoText }]}>Longitude: {point2.longitude.toFixed(5)}</Text>
-        <Button title="Voltar" color={colors.button} onPress={() => setCercaSelecionada(null)} />
+      <View
+        style={[
+          styles.info,
+          {
+            backgroundColor: colors.infoBox,
+            borderColor: colors.border,
+            borderWidth: 2,
+          },
+        ]}
+      >
+        <Text style={[styles.text, { color: colors.infoText }]}>
+          Latitude: {point2.latitude.toFixed(5)}
+        </Text>
+        <Text style={[styles.text, { color: colors.infoText }]}>
+          Longitude: {point2.longitude.toFixed(5)}
+        </Text>
+        <Button
+          title="Voltar"
+          color={colors.button}
+          onPress={() => setCercaSelecionada(null)}
+        />
       </View>
       <Toast />
     </View>
