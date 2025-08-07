@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Image, Platform } from "react-native";
+import { Image, Platform, StyleSheet } from "react-native";
 
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -21,8 +21,17 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           ios: {
             position: "absolute",
+            height: 70,
+            paddingBottom: 15,
           },
-          default: {},
+          android: {
+            height: 60,
+            paddingBottom: 10,
+          },
+          default: {
+            height: 60,
+            paddingBottom: 10,
+          },
         }),
       }}
     >
@@ -42,7 +51,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("@/assets/images/image.png")}
-              style={{ width: size, height: size, tintColor: color }}
+              style={[styles.icon, { width: size, height: size, tintColor: color }]}
+              resizeMode="contain"
             />
           ),
         }}
@@ -55,7 +65,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("@/assets/images/TablerFenceFilled.png")}
-              style={{ width: size, height: size, tintColor: color }}
+              style={[styles.icon, { width: size, height: size, tintColor: color }]}
+              resizeMode="contain"
             />
           ),
         }}
@@ -67,7 +78,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Image
               source={require("@/assets/images/MaterialSymbolsEyeTrackingOutline.png")}
-              style={{ width: size, height: size, tintColor: color }}
+              style={[styles.icon, { width: size, height: size, tintColor: color }]}
+              resizeMode="contain"
             />
           ),
         }}
@@ -75,3 +87,10 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  icon: {
+    maxWidth: 30,
+    maxHeight: 30,
+  },
+});
