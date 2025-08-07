@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import { View, StyleSheet, ActivityIndicator, Dimensions } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import { obterCercas } from "@/storage/cercaStorage";
@@ -22,6 +22,12 @@ interface Cerca {
   horarioFim?: string;
 }
 
+const { width, height } = Dimensions.get("window");
+
+const ASPECT_RATIO = width / height;
+const LATITUDE_DELTA = 0.01;
+const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
+
 const ListarRotasPulseiras = () => {
   const colors = useDaltonicColors();
   const { pulseiraId, cercaId, latitude, longitude, timestamp } = useLocalSearchParams();
@@ -30,7 +36,6 @@ const ListarRotasPulseiras = () => {
   const [cerca, setCerca] = useState<Cerca | null>(null);
   const [pulseiraNome, setPulseiraNome] = useState<string>("");
 
-  // Carrega as localizações salvas e os dados da cerca
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -66,31 +71,38 @@ const ListarRotasPulseiras = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }] }>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.title} />
       </View>
     );
   }
 
-  const coordenadasSelecionadas = latitude && longitude ? {
-    latitude: parseFloat(latitude as string),
-    longitude: parseFloat(longitude as string),
-  } : null;
+  const coordenadasSelecionadas =
+    latitude && longitude
+      ? {
+          latitude: parseFloat(latitude as string),
+          longitude: parseFloat(longitude as string),
+        }
+      : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }] }>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MapView
         style={StyleSheet.absoluteFillObject}
-        initialRegion={coordenadasSelecionadas ? {
-          ...coordenadasSelecionadas,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        } : {
-          latitude: 0,
-          longitude: 0,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
+        initialRegion={
+          coordenadasSelecionadas
+            ? {
+                ...coordenadasSelecionadas,
+                latitudeDelta: LATITUDE_DELTA,
+                longitudeDelta: LONGITUDE_DELTA,
+              }
+            : {
+                latitude: 0,
+                longitude: 0,
+                latitudeDelta: LATITUDE_DELTA,
+                longitudeDelta: LONGITUDE_DELTA,
+              }
+        }
         mapType="hybrid"
       >
         {localizacoes.map((localizacao, index) => (
@@ -101,8 +113,20 @@ const ListarRotasPulseiras = () => {
               longitude: localizacao.longitude,
             }}
             pinColor={colors.title}
-            title={coordenadasSelecionadas && localizacao.latitude === coordenadasSelecionadas.latitude && localizacao.longitude === coordenadasSelecionadas.longitude ? "Ponto selecionado" : undefined}
-            description={coordenadasSelecionadas && localizacao.latitude === coordenadasSelecionadas.latitude && localizacao.longitude === coordenadasSelecionadas.longitude ? `${pulseiraNome} esteve aqui às ${new Date(timestamp as string).toLocaleTimeString()}` : undefined}
+            title={
+              coordenadasSelecionadas &&
+              localizacao.latitude === coordenadasSelecionadas.latitude &&
+              localizacao.longitude === coordenadasSelecionadas.longitude
+                ? "Ponto selecionado"
+                : undefined
+            }
+            description={
+              coordenadasSelecionadas &&
+              localizacao.latitude === coordenadasSelecionadas.latitude &&
+              localizacao.longitude === coordenadasSelecionadas.longitude
+                ? `${pulseiraNome} esteve aqui às ${new Date(timestamp as string).toLocaleTimeString()}`
+                : undefined
+            }
           />
         ))}
         {coordenadasSelecionadas && (
@@ -121,13 +145,6 @@ const ListarRotasPulseiras = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: colors.background // agora controlado pelo hook
-  },
-  texto: {
-    fontSize: 18,
-    textAlign: "center",
-    marginTop: 20,
-    // color: colors.title // agora controlado pelo hook
   },
 });
 
